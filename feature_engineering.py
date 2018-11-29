@@ -11,7 +11,9 @@ class FeatureEngineering:
 		self.data = pd.read_csv('./dataset/train.csv', parse_dates=['Dates'])
 		self.test = pd.read_csv('./dataset/test.csv', parse_dates=['Dates'])
 		self.all_tags = []
-		self.features = ['X','Y','Hour','Minutes','Year','Month','Day','DayOfWeekNum', 'PdDistrictNum', 'Address_CrossRoad', 'Address_clean_encode','is_weekend', 'is_night_time', 'is_holiday'] + self.all_tags
+
+	def get_dataPoints(self):
+		return (self.data, self.test)
 
 	def handle_dates(self):
 		data_week_dict = {
@@ -83,10 +85,10 @@ class FeatureEngineering:
 		self.test = self.test[self.test.Y < 40]
 
 	def handle_addressCaps(self, i):
-		s=''
+		s = ''
 		for j in i.split():
 			if(j.isupper()):
-				s=s+' '+j
+				s = s + ' ' + j
 		return s[1:]
 
 	def set_addressCaps(self):
@@ -196,9 +198,11 @@ class FeatureEngineering:
 		self.data = pd.concat([self.data,data_dicts_pd],axis=1)
 		self.test = pd.concat([self.test,test_dicts_pd],axis=1)
 
+	def write_fe_csv(self):
+		self.data.to_csv('fe_train.csv', index=False)
+		self.test.to_csv('fe_test.csv', index=False)
 
-def main():
-	fe = FeatureEngineering()
+def main(fe):
 	fe.handle_dates()
 	fe.set_new_min()
 	fe.set_season()
@@ -212,9 +216,11 @@ def main():
 	fe.set_night_time()
 	fe.set_holidays()
 	fe.handle_tags()
-	return (fe.data, fe.test) 
+	fe.write_fe_csv()
+	# return fe.get_dataPoints()
 
 if __name__ == '__main__':
-	data,test = main()
+	fe = FeatureEngineering()
+	main(fe)
+	data, test = fe.get_dataPoints()
 	print(data.head())
-	print(data.columns)

@@ -140,24 +140,13 @@ def main():
 	cross_val_mode = True
 
 	ml = Model(cross_val_mode)
-	lr = ml.LogisticRegression()
 	ml.split_data()
-	param_grid = {
-		'max_iter' : [80,110,140]
-	}
-	gr = ml.GridSearchCV(lr,param_grid)
-	ml.fit(gr)
 
-	if cross_val_mode:
-		means = gr.cv_results_['mean_test_score']
-		stds = gr.cv_results_['std_test_score']
-		params = gr.cv_results_['params']
-		for mean, stdev, param in zip(means, stds, params):
-			print("%f (%f) with: %r" % (mean, stdev, param))
-	else:
-		ml.fit(lr)
-		ml.make_submission_file(lr, 'test')
-
+	# if cross_val_mode:
+	# 	ml.calculate_cross_val(lr)
+	# else:
+	# 	ml.fit(lr)
+	# 	ml.make_submission_file(lr, 'test')
 
 
 if __name__ == '__main__':

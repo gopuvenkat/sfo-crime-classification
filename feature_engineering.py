@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 import holidays
 
 class FeatureEngineering:
@@ -198,6 +198,59 @@ class FeatureEngineering:
 		self.data = pd.concat([self.data,data_dicts_pd],axis=1)
 		self.test = pd.concat([self.test,test_dicts_pd],axis=1)
 
+	def handle_coordinates(self):
+		data_scaler = StandardScaler()
+		data_scaler.fit(self.data[["X","Y"]])
+		self.data[["X","Y"]] = data_scaler.transform(self.data[["X","Y"]])
+		self.data["rot_45_X"] = .707*self.data["Y"] + .707*self.data["X"]
+		self.data["rot_45_Y"] = .707* self.data["Y"] - .707* self.data["X"]
+		self.data["rot_30_X"] = (1.732/2)*self.data["X"] + (1./2)*self.data["Y"]
+		self.data["rot_30_Y"] = (1.732/2)* self.data["Y"] - (1./2)* self.data["X"]
+		self.data["rot_60_X"] = (1./2)*self.data["X"] + (1.732/2)*self.data["Y"]
+		self.data["rot_60_Y"] = (1./2)* self.data["Y"] - (1.732/2)* self.data["X"]
+		self.data["radial_r"] = np.sqrt( np.power(self.data["Y"],2) + np.power(self.data["X"],2) )
+		self.data['XY'] = self.data.X * self.data.Y
+
+		test_scaler = StandardScaler()
+		test_scaler.fit(self.test[["X","Y"]])
+		self.test[["X","Y"]] = test_scaler.transform(self.test[["X","Y"]])
+		self.test["rot_45_X"] = .707*self.test["Y"] + .707*self.test["X"]
+		self.test["rot_45_Y"] = .707* self.test["Y"] - .707* self.test["X"]
+		self.test["rot_30_X"] = (1.732/2)*self.test["X"] + (1./2)*self.test["Y"]
+		self.test["rot_30_Y"] = (1.732/2)* self.test["Y"] - (1./2)* self.test["X"]
+		self.test["rot_60_X"] = (1./2)*self.test["X"] + (1.732/2)*self.test["Y"]
+		self.test["rot_60_Y"] = (1./2)* self.test["Y"] - (1.732/2)* self.test["X"]
+		self.test["radial_r"] = np.sqrt( np.power(self.test["Y"],2) + np.power(self.test["X"],2) )
+		self.test['XY'] = self.test.X * self.test.Y
+
+	def handle_street_addr(self, address):
+		street = address.split(' ')
+		return (''.join(street[-1]))
+
+	def get_street_addr(self):
+		self.data['Address_Type'] = self.data['Address'].apply(lambda x : self.handle_street_addr(x))
+		self.test['Address_Type'] = self.test['Address'].apply(lambda x : self.handle_street_addr(x))
+
+		for x in [self.data,self.test]:
+			x['is_street'] = (x['Address_Type'] == 'ST')
+			x['is_avenue'] = (x['Address_Type'] == 'AV')
+
+		self.data['is_street'] = self.data['is_street'].apply(lambda x : int(x))
+		self.data['is_avenue'] = self.data['is_avenue'].apply(lambda x : int(x))
+
+		self.test['is_avenue'] = self.test['is_avenue'].apply(lambda x : int(x))
+		self.test['is_street'] = self.test['is_street'].apply(lambda x : int(x))
+
+	def handle_is_block(self, address):
+		if 'Block' in address:
+			return 1
+		else:
+			return 0
+
+	def get_is_block(self):
+		self.data['is_block'] = self.data['Address'].apply(lambda x : self.handle_is_block(x)) 
+		self.test['is_block'] = self.test['Address'].apply(lambda x : self.handle_is_block(x))
+
 	def write_fe_csv(self):
 		self.data.to_csv('fe_train.csv', index=False)
 		self.test.to_csv('fe_test.csv', index=False)
@@ -216,11 +269,16 @@ def main(fe):
 	fe.set_night_time()
 	fe.set_holidays()
 	fe.handle_tags()
+	fe.handle_coordinates()
+	fe.get_street_addr()
+	fe.get_is_block()
 	fe.write_fe_csv()
-	# return fe.get_dataPoints()
 
 if __name__ == '__main__':
 	fe = FeatureEngineering()
 	main(fe)
 	data, test = fe.get_dataPoints()
+
 	print(data.head())
+	print(data.columns)
+	print(test.head())

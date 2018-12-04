@@ -84,7 +84,7 @@ class Model:
 
 	def xgboost(self):
 		seed = 42
-		max_depth = 17
+		max_depth = 8
 		learning_rate = 0.2
 		min_child_weight = 1
 		n_estimators = 100
@@ -116,14 +116,13 @@ class Model:
 		print("LogLoss score: ", log_loss(ytest_, model.predict(self.X_test)))
 		return model
 
-	def pca(self):
+	def PCA(self):
 		pca = PCA(n_components=17)
-		pca.fit(Xtrain_, ytrain_)
-		Xtrain_pca = pca.transform(Xtrain_)
+		pca.fit(self.X_train, self.y_train)
+		Xtrain_pca = pca.transform(self.X_train)
 		Xtest_pca = pca.transform(self.X_test)
-		score = -1 * cross_val_score(model, Xtrain_pca, ytrain_, scoring='neg_log_loss', cv=3, n_jobs=8)
-		print("Score = {0:.6f}".format(score.mean()))
-		print(score)
+		self.X_train = Xtrain_pca
+		self.X_test = Xtest_pca
 
 	def GridSearchCV(self, model, param_grid):
 		model_gscv = GridSearchCV(
@@ -171,15 +170,14 @@ def main():
 
 	ml = Model(cross_val_mode)
 	ml.split_data()
-	df = ml.DecisionTreeClassifier()
-	ml.model_pickle(df,'testing')
+	model = ml.xgboost()
 
-
-	# if cross_val_mode:
-	# 	ml.calculate_cross_val(lr)
-	# else:
-	# 	ml.fit(lr)
-	# 	ml.make_submission_file(lr, 'test')
+	if cross_val_mode:
+		print(model)
+		ml.calculate_cross_val(model)
+	else:
+		ml.fit(model)
+		ml.make_submission_file(model, 'test')
 
 
 if __name__ == '__main__':

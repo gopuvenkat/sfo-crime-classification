@@ -9,20 +9,25 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
+import lightgbm as lgb
 import pickle
 
 class Model:
 	def __init__(self, cross_val_mode = False):
-		self.train = pd.read_csv('./fe_train.csv', parse_dates=['Dates'])
-		self.test = pd.read_csv('./fe_test.csv', parse_dates=['Dates'])
+		self.train = pd.read_csv('./dataset/fe_train.csv', parse_dates=['Dates'])
+		self.test = pd.read_csv('./dataset/fe_test.csv', parse_dates=['Dates'])
 		self.cross_val_mode = cross_val_mode
 		self.X_train = None
 		self.y_train = None
 		self.X_test = None
 		self.y_test = None
-		self.features = ['X', 'Y', 'Hour', 'Minutes', 'Year', 'Month', 'Day', 'DayOfWeekNum', 'PdDistrictNum', 'Address_CrossRoad', 'Address_clean_encode','is_weekend', 'is_night_time', 'is_holiday'] + ['AL', 'AR', 'AV', 'AY', 'BL', 'CR',
-       'CT', 'DR', 'ER', 'EX', 'HY', 'LN', 'MS', 'NO', 'PL', 'PZ', 'RD', 'RK',
-       'RW', 'ST', 'TI', 'TR', 'WK', 'WY']
+		self.sf = ['X', 'Y', 'Hour', 'Minutes', 'Year', 'Month', 'Day', 'DayOfWeekNum', 'PdDistrictNum', 'Address_CrossRoad', 'Address_clean_encode']
+		self.fs1 = ['is_weekend', 'is_night_time', 'is_holiday']
+		self.fs2 = ['AL', 'AR', 'AV', 'AY', 'BL', 'CR', 'CT', 'DR', 'ER', 'EX', 'HY', 'LN', 'MS', 'NO', 'PL', 'PZ', 'RD', 'RK', 'RW', 'ST', 'TI', 'TR', 'WK', 'WY']
+		self.fs3 = ['is_avenue',  'is_street', 'is_block']
+		self.fs4 = ['X_reduced', 'Y_reduced', 'rot_45_X', 'rot_45_Y', 'rot_30_X', 'rot_30_Y', 'rot_60_X', 'rot_60_Y', 'radial_r', 'XY_reduced']
+		self.fs5 = ['newMin', 'seasons']
+		self.features = self.sf + self.fs1 + self.fs3
 
 	def split_data(self):
 		if self.cross_val_mode:
@@ -94,6 +99,32 @@ class Model:
 			n_estimators = n_estimators
 		)
 		return model
+
+	def lightgbm(self):
+		train_data = lgb.Dataset(Xtrain_, label=ytrain_)
+		test_data = lgb.Dataset(Xtest_, label=ytest_)
+
+		params = {
+			'application' : 'multiclass',
+			'is_unbalanced' : 'true',
+			'boosting' : 'gbdt',
+			'learning_rate' : 0.05,
+			'num_class' : 36,
+			'metric' : 'multi_logloss'
+		}
+
+		model = lgb.train(params, train_data)
+		print(log_loss(ytest_, model.predict(Xtest_)))
+
+	def pca(self):
+		from sklearn.decomposition import PCA
+		pca = PCA(n_components=17)
+		pca.fit(Xtrain_, ytrain_)
+		Xtrain_pca = pca.transform(Xtrain_)
+		Xtest_pca = pca.transform(Xtest_)
+		score = -1 * cross_val_score(model, Xtrain_pca, ytrain_, scoring='neg_log_loss', cv=3, n_jobs=8)
+		print("Score = {0:.6f}".format(score.mean()))
+		print(score)
 
 	def GridSearchCV(self, model, param_grid):
 		model_gscv = GridSearchCV(

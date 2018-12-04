@@ -201,27 +201,33 @@ class FeatureEngineering:
 	def handle_coordinates(self):
 		data_scaler = StandardScaler()
 		data_scaler.fit(self.data[["X","Y"]])
-		self.data[["X","Y"]] = data_scaler.transform(self.data[["X","Y"]])
-		self.data["rot_45_X"] = .707*self.data["Y"] + .707*self.data["X"]
-		self.data["rot_45_Y"] = .707* self.data["Y"] - .707* self.data["X"]
-		self.data["rot_30_X"] = (1.732/2)*self.data["X"] + (1./2)*self.data["Y"]
-		self.data["rot_30_Y"] = (1.732/2)* self.data["Y"] - (1./2)* self.data["X"]
-		self.data["rot_60_X"] = (1./2)*self.data["X"] + (1.732/2)*self.data["Y"]
-		self.data["rot_60_Y"] = (1./2)* self.data["Y"] - (1.732/2)* self.data["X"]
-		self.data["radial_r"] = np.sqrt( np.power(self.data["Y"],2) + np.power(self.data["X"],2) )
-		self.data['XY'] = self.data.X * self.data.Y
+		scaled_value_data = data_scaler.transform(self.data[["X","Y"]])
+
+		self.data['X_reduced'] = scaled_value_data[:,:1]
+		self.data['Y_reduced'] = scaled_value_data[:,1:]
+		self.data["rot_45_X"] = .707*self.data["Y_reduced"] + .707*self.data["X_reduced"]
+		self.data["rot_45_Y"] = .707* self.data["Y_reduced"] - .707* self.data["X_reduced"]
+		self.data["rot_30_X"] = (1.732/2)*self.data["X_reduced"] + (1./2)*self.data["Y_reduced"]
+		self.data["rot_30_Y"] = (1.732/2)* self.data["Y_reduced"] - (1./2)* self.data["X_reduced"]
+		self.data["rot_60_X"] = (1./2)*self.data["X_reduced"] + (1.732/2)*self.data["Y_reduced"]
+		self.data["rot_60_Y"] = (1./2)* self.data["Y_reduced"] - (1.732/2)* self.data["X_reduced"]
+		self.data["radial_r"] = np.sqrt( np.power(self.data["Y_reduced"],2) + np.power(self.data["X_reduced"],2) )
+		self.data['XY_reduced'] = self.data.X_reduced * self.data.Y_reduced
 
 		test_scaler = StandardScaler()
 		test_scaler.fit(self.test[["X","Y"]])
-		self.test[["X","Y"]] = test_scaler.transform(self.test[["X","Y"]])
-		self.test["rot_45_X"] = .707*self.test["Y"] + .707*self.test["X"]
-		self.test["rot_45_Y"] = .707* self.test["Y"] - .707* self.test["X"]
-		self.test["rot_30_X"] = (1.732/2)*self.test["X"] + (1./2)*self.test["Y"]
-		self.test["rot_30_Y"] = (1.732/2)* self.test["Y"] - (1./2)* self.test["X"]
-		self.test["rot_60_X"] = (1./2)*self.test["X"] + (1.732/2)*self.test["Y"]
-		self.test["rot_60_Y"] = (1./2)* self.test["Y"] - (1.732/2)* self.test["X"]
-		self.test["radial_r"] = np.sqrt( np.power(self.test["Y"],2) + np.power(self.test["X"],2) )
-		self.test['XY'] = self.test.X * self.test.Y
+		scaled_value_test = test_scaler.transform(self.test[["X","Y"]])
+		
+		self.test['X_reduced'] = scaled_value_test[:,:1]
+		self.test['Y_reduced'] = scaled_value_test[:,1:]
+		self.test["rot_45_X"] = .707*self.test["Y_reduced"] + .707*self.test["X_reduced"]
+		self.test["rot_45_Y"] = .707* self.test["Y_reduced"] - .707* self.test["X_reduced"]
+		self.test["rot_30_X"] = (1.732/2)*self.test["X_reduced"] + (1./2)*self.test["Y_reduced"]
+		self.test["rot_30_Y"] = (1.732/2)* self.test["Y_reduced"] - (1./2)* self.test["X_reduced"]
+		self.test["rot_60_X"] = (1./2)*self.test["X_reduced"] + (1.732/2)*self.test["Y_reduced"]
+		self.test["rot_60_Y"] = (1./2)* self.test["Y_reduced"] - (1.732/2)* self.test["X_reduced"]
+		self.test["radial_r"] = np.sqrt( np.power(self.test["Y_reduced"],2) + np.power(self.test["X_reduced"],2) )
+		self.test['XY_reduced'] = self.test.X_reduced * self.test.Y_reduced
 
 	def handle_street_addr(self, address):
 		street = address.split(' ')
@@ -252,8 +258,8 @@ class FeatureEngineering:
 		self.test['is_block'] = self.test['Address'].apply(lambda x : self.handle_is_block(x))
 
 	def write_fe_csv(self):
-		self.data.to_csv('fe_train.csv', index=False)
-		self.test.to_csv('fe_test.csv', index=False)
+		self.data.to_csv('./dataset/fe_train.csv', index=False)
+		self.test.to_csv('./dataset/fe_test.csv', index=False)
 
 def main(fe):
 	fe.handle_dates()

@@ -16,6 +16,7 @@ class FeatureEngineering:
 		return (self.data, self.test)
 
 	def handle_dates(self):
+		# Parse the date column and splice out Hour, Minutes, Year, Month, Day and Day of week
 		data_week_dict = {
 			'Monday': 1,
 			'Tuesday':2,
@@ -41,6 +42,7 @@ class FeatureEngineering:
 		self.test['DayOfWeekNum'] = self.test['DayOfWeek'].replace(data_week_dict)
 
 	def handle_min(self, min):
+		# Collapse the minutes section to appropriate quartiles
 		if(min < 15):
 			return 0
 		elif(min >= 15 and min < 30):
@@ -55,6 +57,7 @@ class FeatureEngineering:
 		self.test['newMin'] = self.test.Minutes.apply(lambda min : self.handle_min(min))
 
 	def handle_season(self, month):
+		# Evaluate the seasonal patterns of the city of San Francisco
 		# https://www.studentflights.com.au/destinations/san-francisco/weather
 		if month in [3, 4, 5]:
 			return 1
@@ -70,6 +73,7 @@ class FeatureEngineering:
 		self.test['seasons'] = self.test.Month.apply(lambda month : self.handle_season(month))
 
 	def handle_PdDistrict(self):
+		# Encode the categorical input using a Label Encoder
 		labelencoder = LabelEncoder()
 		self.data['PdDistrictNum'] = labelencoder.fit_transform(self.data['PdDistrict'])
 		self.test['PdDistrictNum'] = labelencoder.fit_transform(self.test['PdDistrict'])
@@ -79,6 +83,7 @@ class FeatureEngineering:
 		self.data['CategoryNum'] = labelencoder.fit_transform(self.data['Category'])
 
 	def handle_outliers(self):
+		# Preprocessing Step - remove the points that lie outside of San Franciso
 		self.data = self.data[self.data.X < -121]
 		self.data = self.data[self.data.Y < 40]
 		self.test = self.test[self.test.X < -121]
@@ -99,10 +104,12 @@ class FeatureEngineering:
 		self.test['newAddressNum'] = labelencoder.fit_transform(self.test.newAddress)
 
 	def handle_is_crossroads(self):
+		# Evaluate if the given address is at an cross road
 		self.data['Address_CrossRoad'] = self.data['Address'].str.contains('/')
 		self.test['Address_CrossRoad'] = self.test['Address'].str.contains('/')
 
 	def handle_address(self):
+		# Keep track of the addresses where more than 100 crimes have occured
 		topN_address_list = self.data['Address'].value_counts()
 		topN_address_list = topN_address_list[topN_address_list >=100]
 		topN_address_list = topN_address_list.index
@@ -115,6 +122,8 @@ class FeatureEngineering:
 		crossload = self.data[self.data['Address_clean'].str.contains('/')]
 		crossroad_list = crossload['Address_clean'].unique()
 
+		# Addresses of the form A / B and B / A exists in the dataset but both of them actually mean the same location
+		# So before encoding the same, it is important that we flip one of them (in other words only one copy is maintained)
 		for address in crossroad_list:
 			address_split = address.split('/')
 			reverse_address = address_split[1].strip() + ' / ' + address_split[0].strip()
@@ -128,6 +137,7 @@ class FeatureEngineering:
 		self.test['Address_clean_encode'] = labelencoder.fit_transform(self.test['Address_clean'])
 
 	def handle_weekends(self, day):
+		# Evaluate whether the given day is a weekend
 		if day in ['Friday', 'Saturday', 'Sunday']:
 			return True
 		else:
@@ -138,16 +148,18 @@ class FeatureEngineering:
 		self.test['is_weekend'] = self.test.DayOfWeek.apply(lambda x : self.handle_weekends(x))
 
 	def handle_night_time(self, time):
-			if time >= 22 or time <= 6:
-				return True
-			else:
-				return False
+		# Evaluate whether the mentioned time falls in the late night category
+		if time >= 22 or time <= 6:
+			return True
+		else:
+			return False
 
 	def set_night_time(self):
 		self.data['is_night_time'] = self.data.Hour.apply(lambda x : self.handle_night_time(x))
 		self.test['is_night_time'] = self.test.Hour.apply(lambda x : self.handle_night_time(x))
 
 	def handle_holidays(self, date):
+		# Evaluate whether the reported date was a holiday in the US
 		if date in self.us_holidays:
 			return True
 		else:
@@ -165,6 +177,7 @@ class FeatureEngineering:
 			return [strings[0].strip()[-2:].strip(), strings[1][-2:].strip()]
 
 	def get_all_tags(self, all_address):
+		# Returns all the tags from the address column
 		all_tags = []
 		for address in all_address:
 			tags = self.get_address_char(address)
@@ -186,6 +199,7 @@ class FeatureEngineering:
 		return all_dict
 
 	def handle_tags(self):
+		# Merge the original dataframe with the dataframe of the one hot representation of the tags
 		self.set_all_tags()
 		self.data['tags'] = self.data.Address.apply(lambda x: self.get_address_char(x))
 		self.test['tags'] = self.test.Address.apply(lambda x: self.get_address_char(x))
@@ -199,6 +213,8 @@ class FeatureEngineering:
 		self.test = pd.concat([self.test,test_dicts_pd],axis=1)
 
 	def handle_coordinates(self):
+		# It is quite possible that the crime could have happened in the neighbourhood of the reported X and Y
+		# To build the concept of neighbourhood, rotate the given X, Y using the rotation matrix
 		data_scaler = StandardScaler()
 		data_scaler.fit(self.data[["X","Y"]])
 		scaled_value_data = data_scaler.transform(self.data[["X","Y"]])
@@ -217,7 +233,7 @@ class FeatureEngineering:
 		test_scaler = StandardScaler()
 		test_scaler.fit(self.test[["X","Y"]])
 		scaled_value_test = test_scaler.transform(self.test[["X","Y"]])
-		
+
 		self.test['X_reduced'] = scaled_value_test[:,:1]
 		self.test['Y_reduced'] = scaled_value_test[:,1:]
 		self.test["rot_45_X"] = .707*self.test["Y_reduced"] + .707*self.test["X_reduced"]
@@ -248,13 +264,14 @@ class FeatureEngineering:
 		self.test['is_street'] = self.test['is_street'].apply(lambda x : int(x))
 
 	def handle_is_block(self, address):
+		# Evaluate whether the address mentioned involves a Block
 		if 'Block' in address:
 			return 1
 		else:
 			return 0
 
 	def get_is_block(self):
-		self.data['is_block'] = self.data['Address'].apply(lambda x : self.handle_is_block(x)) 
+		self.data['is_block'] = self.data['Address'].apply(lambda x : self.handle_is_block(x))
 		self.test['is_block'] = self.test['Address'].apply(lambda x : self.handle_is_block(x))
 
 	def write_fe_csv(self):

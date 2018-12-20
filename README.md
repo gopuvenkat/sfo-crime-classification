@@ -1,6 +1,24 @@
-# sfo-crime-classification
-Predict the category of crimes that occurred in the city by the bay
+# San Francisco Crime Classification
 
-## Dataset
+The required directory structure is maintained at https://drive.google.com/drive/folders/1jThdeSwfb2dE0OGHMO5QgCVyY7ajRCrR?usp=sharing.
+The pickle models are maintained the `pickle` directory [https://drive.google.com/drive/folders/1wySWcpjyqn2RoEHB0DJbivcMbBIWm0r8?usp=sharing] and the associated dataset (along with the cleaned data) has been maintained in the `dataset` folder [https://drive.google.com/drive/folders/1g7Izb1jGPjNEC91VHnVZOjr57CVpchq2?usp=sharing]
 
-Lives [here](https://www.kaggle.com/c/IIITB-ML-Project-sfo-crime-classification/data)
+### Install Requirements
+```bash
+pip3 install -r requirements.txt
+```
+
+### Perform Feature Engineering
+```
+python3 feature_engineering.py
+```
+
+### Visualization / EDA
+```
+python3 visualization.py
+```
+
+### Build models (as required) and pickle the same
+```
+python3 model.py
+```

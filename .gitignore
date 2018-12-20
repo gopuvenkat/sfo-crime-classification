@@ -105,3 +105,6 @@ venv.bak/
 
 # Dataset
 *.csv
+
+.DS_Store
+.vscode/
